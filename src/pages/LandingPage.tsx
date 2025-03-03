@@ -79,11 +79,6 @@ export default function LandingPage() {
           </div>
           <div className="mt-12 aspect-w-16 aspect-h-9 max-w-4xl mx-auto">
             <iframe
-              className="w-full h-[500px] rounded-lg shadow-lg"
-              src="https://www.youtube.com/embed/pFHyZvVxce0"
-              title="Financial Management Tutorial"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
             ></iframe>
           </div>
         </div>
