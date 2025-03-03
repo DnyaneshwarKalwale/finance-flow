@@ -89,8 +89,11 @@ const Transactions: React.FC<TransactionListProps> = ({ showAll = true, limit = 
     // Date range filter
     if (filters.dateRange !== 'all') {
       const today = new Date();
-      const thirtyDaysAgo = new Date(today.setDate(today.getDate() - 30));
-      const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
+      let thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      let sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
 
       result = result.filter(transaction => {
         const transactionDate = new Date(transaction.date);
@@ -130,33 +133,25 @@ const Transactions: React.FC<TransactionListProps> = ({ showAll = true, limit = 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await addTransaction(newTransaction);
-    setNewTransaction({
-      description: '',
-      amount: 0,
-      category: 'food',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      type: 'expense',
-      status: 'completed'
-    });
-
-    toast.success('Transaction added successfully!');
-  };
-
-  // Handle editing a transaction
-  const handleEdit = (id: string) => {
-    const transaction = transactions.find(t => t.id === id);
-    if (transaction) {
-      setEditingId(id);
-      setNewTransaction(transaction);
-    }
-  };
-
-  // Handle updating a transaction
-  const handleUpdate = async () => {
-    if (editingId) {
-      await updateTransaction(editingId, newTransaction);
-      setEditingId(null);
+    try {
+      // Validate the form
+      if (!newTransaction.description.trim()) {
+        toast.error('Description is required!');
+        return;
+      }
+      
+      if (newTransaction.amount <= 0) {
+        toast.error('Amount must be greater than 0!');
+        return;
+      }
+      
+      // Call the addTransaction function from useFirebase hook
+      await addTransaction({
+        ...newTransaction,
+        amount: Number(newTransaction.amount) // Ensure amount is a number
+      });
+      
+      // Reset the form
       setNewTransaction({
         description: '',
         amount: 0,
@@ -165,27 +160,103 @@ const Transactions: React.FC<TransactionListProps> = ({ showAll = true, limit = 
         type: 'expense',
         status: 'completed'
       });
-      toast.success('Transaction updated successfully!');
+
+      toast.success('Transaction added successfully!');
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      toast.error('Failed to add transaction. Please try again.');
+    }
+  };
+
+  // Handle editing a transaction
+  const handleEdit = (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (transaction) {
+      setEditingId(id);
+      setNewTransaction({
+        description: transaction.description,
+        amount: transaction.amount,
+        category: transaction.category,
+        date: transaction.date,
+        type: transaction.type,
+        status: transaction.status
+      });
+    }
+  };
+
+  // Handle updating a transaction
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingId) {
+      try {
+        // Validate the form
+        if (!newTransaction.description.trim()) {
+          toast.error('Description is required!');
+          return;
+        }
+        
+        if (newTransaction.amount <= 0) {
+          toast.error('Amount must be greater than 0!');
+          return;
+        }
+        
+        await updateTransaction(editingId, {
+          ...newTransaction,
+          amount: Number(newTransaction.amount) // Ensure amount is a number
+        });
+        
+        setEditingId(null);
+        setNewTransaction({
+          description: '',
+          amount: 0,
+          category: 'food',
+          date: format(new Date(), 'yyyy-MM-dd'),
+          type: 'expense',
+          status: 'completed'
+        });
+        toast.success('Transaction updated successfully!');
+      } catch (error) {
+        console.error('Error updating transaction:', error);
+        toast.error('Failed to update transaction. Please try again.');
+      }
     }
   };
 
   // Handle deleting a transaction
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
-      await deleteTransaction(id);
-      toast.success('Transaction deleted successfully!');
+      try {
+        await deleteTransaction(id);
+        toast.success('Transaction deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+        toast.error('Failed to delete transaction. Please try again.');
+      }
     }
   };
 
   // Handle adding a new category
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCategory && !categories.includes(newCategory.toLowerCase())) {
-      await addCategory(newCategory.toLowerCase());
+    
+    try {
+      if (!newCategory.trim()) {
+        toast.error('Category name cannot be empty!');
+        return;
+      }
+      
+      if (categories.includes(newCategory.toLowerCase().trim())) {
+        toast.error('Category already exists!');
+        return;
+      }
+      
+      await addCategory(newCategory.toLowerCase().trim());
       setNewCategory('');
       toast.success('Category added successfully!');
-    } else {
-      toast.error('Category already exists or is invalid!');
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Failed to add category. Please try again.');
     }
   };
 
